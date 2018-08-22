@@ -101,12 +101,9 @@ classdef Marker <handle
             %first get data before and after movement onset
             movementOnset=self.timeMovementOnset(trial);
             movementEnd=self.timeMovementEnd(trial);
-            rawVelocities=self.getVelocitiesBetween(trial,(movementOnset-100),movementEnd);
-            rawPositions=self.getPositionsBetween(trial,(movementOnset-100),movementEnd);
-            position=Marker.downsampleTo50Ms(rawPositions);
-            velocity=Marker.downsampleTo50Ms(rawVelocities);
-            time=[(movementOnset-100),movementEnd];
-            
+            rawVelocities=self.getPositionsBetween(trial,movementOnset,movementEnd);
+            rawPositions=self.getPositionsBetween(trial,movementOnset,movementEnd);
+            downSampledPosition=Marker.downsampleTo50Ms(self.
         end
         %first, calculate position velocity, and spike counts in 50 ms bins
         % 100 ms before movement onset til the end of the movement ( ms)

@@ -503,24 +503,6 @@ classdef NeuroPopulation < handle
             
         end
         function linearRegressionMovementEstimation(self)
-            %get X and Y from getDecodingData
-            [X,y]=self.getDecodingData();
-            indexOfTraining=floor(80/100*trials);
-            X_train=X(1:indexOfTraining,:);
-            X_test=X((indexOfTraining+1):end,:);
-            y_train=y(1:indexOfTraining,:);
-            y_test=y((indexOfTraining+1):end,:);
-            
-            %regress training data
-            A=(X_train'*X_train)^(-1) *X_train'*y_train;
-            %see how it did
-            %absolute angular error
-            y_hat=X_test*A;
-            absoluteAngularError=abs(y_hat-y_test);
-            %make a histogram of the absolute angular error
-            histogram(absoluteAngularError);
-            title('Linear Regression Movement Estimation');
-            xlabel('Angular Error');
         end
         function populationVectorAlgorithmForAngleAndMovementEstimation(self)
         
@@ -539,11 +521,9 @@ classdef NeuroPopulation < handle
            %monkey (velocities and stuff)
            
         end
-        function [X,y]=getDecodingData(self)
-            %get positions, velocities and times downsampled to 50 ms
-            [position,velocity, time]=self.Marker.getPositionVelocitesAndTime( trial);
-            %time will be 100 ms before movement onset (index 1) until
-            %movement end (index 2)
+        function [xTrain, xTest, yTrain, yTest]=getDecodingData(self)
+            %this function will produce the intended movement directions
+            %and 
             
         end
     end

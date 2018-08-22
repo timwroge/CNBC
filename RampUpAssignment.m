@@ -10,13 +10,13 @@ verbose=true;
 %creates the average from neuron 20, 500 ms before and 500 ms after onset,
 %with 20 ms bins
 neuronNumber=20; timeBeforeOnset=500; timeAfterOnset=500; timeBetweenBins=20;
-[~,~]=NP.createPSTH(neuronNumber, timeBeforeOnset, timeAfterOnset, timeBetweenBins, verbose);
+% [~,~]=NP.createPSTH(neuronNumber, timeBeforeOnset, timeAfterOnset, timeBetweenBins, verbose);
 %% #CosineTuningCurves
 %if true, the figure is plotted
 % NP.createCosineTuningCurve(20, true);
 %the parameter shows whether they are scaled (true) or not (false)
 isScaled=true;
-NP.plotPreferredDirections(isScaled);
+% NP.plotPreferredDirections(isScaled);
 %%              Dimensionality Reduction
 
 
@@ -34,7 +34,8 @@ dimensions=3;
 
 
 %% Linear Regression
-
+NP.linearRegressionAngleEstimation();
+NP.linearRegressionMovementEstimation();
 %% Population Vector Algorithm
 
 %% Optimal Linear Estimator
