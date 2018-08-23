@@ -269,4 +269,103 @@ And the overall algorithm can be solved analytically as:
 
 OLE addresses the limitations of other decoders such as PVA while
 retaining the same information about the neural population activity,
-such as modulation depth, baseline and preferred dir
+such as modulation depth, baseline and preferred direction. The rates used in this method are calculated differently than
+PVA such that: \[r_i (t) &= \frac{f _i - b_i^D}{k_i}
+    \label{eq:OLErate}\]
+
+These values are smoothed so the last 5 time bins are used and averaged.
+Using this, we can decode the cursor
+velocity:
+
+\[\overrightarrow{v}(t) &= k_s \frac{n_D}{N} \sum _{i=1} ^N r_i (t) \overrightarrow{p _i} ^D
+    \label{eq:OLEdecoder}\]
+
+In this case \(n_d\) is the number of dimensions for the decoder, and N
+is the number of neurons. \(k_s\) is used as a speed factor to and
+typically ranges from 65 to 80.
+
+The trajectories of the cursor (its position) is updated using Euler’s
+method.
+
+**Implementation**
+
+Given by the Cosine Tuning curve we can get the modulation depth, and
+the preferred direction. From this we calculate Equation
+[\[eq:OLErate\]](#eq:OLErate) and then Equation
+[\[eq:OLEdecoder\]](#eq:OLEdecoder).
+
+## Kalman Filter (KF)
+
+A Kalman filter is a recurrent model which that says that the
+probability of seeing an internal state \(Z_i\) is related to the
+previous network dynamics \(Z_{i-1}\), with some weight matrix \(A\) and
+covariance \(Q\) (guassian noise) (see equation [\[eq:z\]](#eq:z)). This
+model varies from the other relationships in that this is a
+**dynamical** model (i.e. it varies with time).
+
+In general, you can write Z in terms of the Z in the previous time step
+as: \[Z_i= N(A Z_{i-1}, Q)
+    \label{eq:z}\]
+
+With the inital Z as: \[Z_1 = N(\Pi, V)
+    \label{eq:pi}\]
+
+In this way, we can write x (the observation) also as a function of Z.
+
+\[x=N(CZ,R)\]
+
+This model employs the Markov Assumption which basically says that the
+current state is only a function of the previous time step (no other
+information needs to be used). Or in equation form, Z is a directed set
+of causally linked events with no events further than one time step
+influencing the current state.
+\[p(Z_1....Z_T)=p(Z_1) \prod_{t=2} ^T {p(Z_t|Z_{t-1}})\] Then, we take
+the total log probability of all the observations, x, and z’s and take
+the derivative, and set to 0 with respect to certain parameters, we get
+(in matrix notation):
+\[A &= (\sum _{t=1} ^T Z_t Z_{t-1}^T)(\sum _{t=1} ^T Z_{t-1} Z_{t-1}^T)^{-1}
+    \label{eq:a}\] In this situation, the values of Z are known because
+this is a supervised learning situation, so A can be solved
+analytically.
+\[Q &= \frac{1}{T-1} \sum _{t=1}^T (z_t-Az_{t-1})(z_t-Az_{t-1})^T\]
+Using the A derived from the last equation, you can also solve for Q in
+an analytic fashion. \[C= (X Z^T)(X Z^T)^{-1}\] Like in Equation
+[\[eq:a\]](#eq:a), this can also be solved directly.
+\[R=\frac{1}{T} (X - CZ)(X-CZ)^{T}\] This equation can also be solved
+for given the model parameters. And the recently derived matrix C.
+
+In this way you have a way to find the probability of \(z_t | \{ x\}^t\)
+which represents the probability of the latent z given all of the
+observations x. This can be written recursively where the
+\(p(z_t|\{x\}^t\) can be written in terms of \(p(z_t|\{x\}^{t-1}\).
+Using all this information, we can derive that \[z_t= Az_{t-1} +v_t\]
+\[v_t= N(0, Q)
+    \label{eq:v}\]
+
+Given this information, we can get the mean and covariance of z given
+\(\{ x \}^{t-1}\).
+
+The overall algorithm is to take the the sum over all trials in
+training. In this case, that would be tantamount to adding up all the
+different matrices, A, Q, C, and R over all trials.
+
+Overall, because all the other distributions Z, X are Gaussian the joint
+distribution of all of them will also be a Gaussian. This means that in
+to sample over all the trials, we just need to look at the mean
+(\(\mu\)) and covariance (\(\Sigma\)). We can derive (with Bayes Theorem
+and other statistical logic) that the overall definitions for these
+variables will be in this recursive form:
+\[\mu_t = \mu_{t-1}+K_t(x_t- C\mu_{t-1})
+   \label{eq:estimate}\] \[\Sigma_t=K_tC\Sigma_{t-1}\] where,
+\[k_t=\Sigma_{t-1}C^T(C \Sigma_{t-1} C^T+R)^{-1}\] It is worth noting
+that the values of \(\Pi\) and \(V\), in the case of multiple trials are
+just the sample mean and covariance of those values.
+
+In all this, the \(\mu\) value represents the estimate of the next state
+(in our case, the next position, and velocity) and \(\Sigma\) represents
+the uncertainty about the next state. Equation
+[\[eq:estimate\]](#eq:estimate) can be read as the best estimate of the
+current value, plus some Kalman gain (\(K_t\)) times the uncertainty of
+the current state.
+
+
