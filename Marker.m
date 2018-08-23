@@ -104,7 +104,6 @@ classdef Marker <handle
             %first make a variable that is easier to work with
             allVelocitiesX=self.velocity.x{trial};
             allVelocitiesY=self.velocity.y{trial};
-            
             %then take indexes from the time cell array
             allTimes=self.times{trial};
             allTimes=allTimes(2:end);

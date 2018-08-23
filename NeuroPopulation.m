@@ -547,7 +547,6 @@ classdef NeuroPopulation < handle
             X_test=X((indexOfTraining+1):end,:);
             y_train=y(1:indexOfTraining,:);
             y_test=y((indexOfTraining+1):end,:);
-            
             %regress training data
             A=(X_train'*X_train)^(-1) *X_train'*y_train;
             %see how it did
