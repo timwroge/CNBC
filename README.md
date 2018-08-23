@@ -162,7 +162,7 @@ just switch the coordinate system to that shown in Equation
 The MATLAB program, `pmdDataSetup` should output the movement angle,
 \(\theta _ m\) and the firing rates, \(f _ i\).
 
-# Dimensionality Reduction of Neural Data
+## Dimensionality Reduction of Neural Data
 
 First use the aforementioned MATLAB program `pmdDataSetup` to get the
 angle and firing rates for each of the neurons, then find the mean and
@@ -199,4 +199,74 @@ freedom of the neurons is two. In this case, only \(\alpha _ n\) and
 This would imply that the **intrinsic dimensionality** of the subspace
 of the neural firing data would be two. Imagine a plot with the two axes
 are defined by \(\alpha _ n\) and \(\beta _ n\), then two separate
-neurons would be distinct and each
+neurons would be distinct and each point in the space would be a firing of the neuron.
+
+In reality, these vectors are known and the true dimensionality and
+number of vectors to define the firing of neural data must be determined
+in ways described shortly.
+
+You can visualize high dimensional neural data with spike count vectors
+which simply show the amount a neuron fires in a given amount of time.
+
+# Decoders
+
+There is the issue of finding the optimal decoder for the problem of
+translating population neural activity patterns to the movement of motor
+objects such as a cursor on the screen or a robotic arm. PVA is the
+simplest algorithm since it follows a general approach of weighting
+certain neural activity based on its firing rates but it ignores factors
+such as the neurons intrinsic modulation depth ( the the scale of the
+baseline neural activity fluctuations ) and the baseline neural
+activity.
+
+## How the data is arranged
+
+The point of a decoder is to generate a prediction of the position of
+the hand movement or the velocity of the hand based on the neural
+activity in order to create a mapping for BCI control. So, in simple
+terms, the velocity is a function of the neural firing rate:
+\[[V_x, V_y]= f(FiringRate)\]
+
+## Linear Regression Decoding
+
+In Linear Regression Decoding, you can use simple linear regression to
+estimate the angle of the reach target (0 : 45 : 360) or the angular
+velocity of the hand marker (\(\theta \in [0,360]\)).
+
+To accomplish this we have to split up the data into training and
+testing classes which will be used to assess generalization of the
+model.
+
+A simple decoder can regress the high dimensional neural population
+activity to the target reach angle.
+
+Another regression can directly estimate the x and y velocities of the
+marker in order to decode the neural activity into cursor velocities.
+
+## Population Vector Algorithm
+
+The population vector algorithm takes the preferred direction of the
+neurons (given by the cosine tuning curve) and calculates the movement
+directions (velocities?). The equation should make intuitive sense
+because it is just a weighted sum of the firing rates (how much that
+neuron is active) and the preferred direction of that neuron. This is a
+normalized value because \(textbf{p_i}\) is the defined as:
+
+\[p_i &= \left[ \begin{array}{c}
+                cos(\theta _ p)\\
+                sin(\theta _ p) \\
+     \end{array}
+          \right]\]
+
+And the overall algorithm can be solved analytically as:
+
+\[\hat{m}  &= \left[ \begin{array}{c}
+        \hat{m  _x} \\
+         \hat{m  _y} \\
+    \end{array}\right] &= \frac{\sum ^N _{i=1} f _ i p_i}{\sum ^N _{i=1} f _i }\]
+
+## Optimal Linear Estimator (OLE)
+
+OLE addresses the limitations of other decoders such as PVA while
+retaining the same information about the neural population activity,
+such as modulation depth, baseline and preferred dir
