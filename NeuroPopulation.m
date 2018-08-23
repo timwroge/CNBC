@@ -88,10 +88,16 @@ classdef NeuroPopulation < handle
             if (dataIsInWorkspace)
                 self.NeuralData=evalin('base', 'Data');
                 self.Marker=Marker('',dataIsInWorkspace);
+                ov = [self.NeuralData.Overview];
+                success = [ov.trialStatus] == 1;
+                self.NeuralData = self.NeuralData(success);
             else
                 self.NeuralData= load(NeuralDataFilename);
                 self.NeuralData=self.NeuralData.Data;
                 self.Marker=Marker(NeuralDataFilename,dataIsInWorkspace);
+                ov = [self.NeuralData.Overview];
+                success = [ov.trialStatus] == 1;
+                self.NeuralData = self.NeuralData(success);
             end
             
             self.MetaData=[self.NeuralData.Overview];
@@ -126,11 +132,21 @@ classdef NeuroPopulation < handle
 
                 end
                 if(isempty(self.Neurons))
-                    self.Neurons{1}={self.NeuralData(1).TrialData...
+                    allTimeStamps={self.NeuralData(ii).TrialData...
                         .spikes.timestamps};
+                    numberOfNeurons=max(size(allTimeStamps));
+                    for hh=1:numberOfNeurons
+                    %make 
+                    self.Neurons{ii, hh}=allTimeStamps{hh};
+                    end
                 else
-                    self.Neurons{ii}={self.NeuralData(ii).TrialData...
+                    allTimeStamps={self.NeuralData(ii).TrialData...
                         .spikes.timestamps};
+                    numberOfNeurons=max(size(allTimeStamps));
+                    for hh=1:numberOfNeurons
+                    %make 
+                    self.Neurons{ii, hh}=allTimeStamps{hh};
+                    end
                 end
             end
             
@@ -148,7 +164,26 @@ classdef NeuroPopulation < handle
             for jj=1:size(spikes, 1)
                 self.zeroCenteredObservations(jj, :)=spikes(jj,:)-self.firingRateMean;
             end
-            
+
+            %go through the neuron structure and find any nonfiring neurons
+            %create a variable sum that is the total value of all the
+            %spikecounts
+            indexesToDelete=[];
+            for ii=1:numberOfNeurons
+                spikeSum=0;
+                for jj=1:len-1
+                    spikesForTrial=self.Neurons{jj,ii};
+                    spikeSum=spikeSum+sum(spikesForTrial);
+                end
+                if spikeSum==0
+                    %delete row of neurons
+                    indexesToDelete=[indexesToDelete,ii];
+                end
+            end
+            indexesToDelete=sort(indexesToDelete,'descend');
+            for kk=1:length(indexesToDelete)
+                self.Neurons(:,indexesToDelete(kk))=[];
+            end
         end
 
         
@@ -175,7 +210,7 @@ classdef NeuroPopulation < handle
             %preallocate memory
             spikeData{trials}=0;
             for ii=1:trials
-                spikeData{ii}=self.Neurons{ii}{neuronNumber};
+                spikeData{ii}=self.Neurons{ii,neuronNumber};
             end
             %the time movement onset for these neurons is the same as the
             %timeMovementOnset parameter
@@ -220,6 +255,7 @@ classdef NeuroPopulation < handle
                     end
                 end
             end
+            
             %plot the histogram
             %the frequency of the spike rate is related to the number of
             %firing in a certain amount of time, (0.02s)
@@ -497,6 +533,7 @@ classdef NeuroPopulation < handle
             y_hat=X_test*A;
             absoluteAngularError=abs(y_hat-y_test);
             %make a histogram of the absolute angular error
+            figure;
             histogram(absoluteAngularError);
             title('Linear Regression Absolute Angular Error');
             xlabel('Angular Error');
@@ -518,12 +555,13 @@ classdef NeuroPopulation < handle
             y_hat=X_test*A;
             absoluteAngularError=abs(y_hat-y_test);
             %make a histogram of the absolute angular error
+            figure;
             histogram(absoluteAngularError);
             title('Linear Regression Movement Estimation');
             xlabel('Angular Error');
         end
         function populationVectorAlgorithmForAngleAndMovementEstimation(self)
-        
+            
         end
         function OLEMovementTrajectory(self)
             %this is the optimal linear estimator for use in decoding the
@@ -539,11 +577,69 @@ classdef NeuroPopulation < handle
            %monkey (velocities and stuff)
            
         end
+        
         function [X,y]=getDecodingData(self)
+            function spikeCounts=getSpikeCounts(trial, time)
+                % calculate spike counts in 50 ms bins
+                % 100 ms before movement onset til the end of the movement
+                
+                %first get 
+                %movement onset and resample so it is to the nearest 50th
+                firstTime=time(1);firstTime=round(firstTime/50)*50;
+                %movement end and resample so it is to the nearest 50th
+                secondTime=time(2);secondTime=round(secondTime/50)*50;
+                binEdges=firstTime:50:secondTime;
+                %next, grab the spike times 
+                spikeTimes={self.Neurons{trial,:}};
+                %make data that will be populated later
+                rows=max(size(binEdges))-1;
+                columns=size(spikeTimes,2);
+                % number of neurons
+                spikeCounts=zeros(rows, columns);
+                %now use histcounts to get the spikeCounts using the bin
+                %edges
+                for ii=1:columns
+                    %get the spike counts for the ii th neuron
+                    tempCounts=histcounts(spikeTimes{ii}, 'binedges', binEdges);
+                    spikeCounts(:, ii)=tempCounts;
+                end
+%                 disp(['Spike Counts: ',spikeCounts]);
+                %the way the data should look
+                   %      neuron 1  neuron 2   neuron 3 ... neuron N
+                   %      spikes0-50 ...                ... spikes 0
+                   %      spikes50-100 ...               ...spikes 50-100
+            end
             %get positions, velocities and times downsampled to 50 ms
-            [position,velocity, time]=self.Marker.getPositionVelocitesAndTime( trial);
+            
             %time will be 100 ms before movement onset (index 1) until
             %movement end (index 2)
+            %continuously add rows based on data obtained from spikecounts
+            %and the postion, velocity and time
+            % decoding target is [position.x; position.y;velocity.x;
+            % velocity.y] 
+            
+            %find number of trials
+            trials=self.Marker.trials;
+            y=[];
+            X=[];
+            for trial =1:trials
+                [position,velocity, time]=self.Marker.getPositionVelocitesAndTime(trial);
+                %make sure number of rows match
+                if trial ~=1
+                y=[y;position.x, position.y, velocity.x, velocity.y];
+                X=[X;getSpikeCounts(trial, time)];
+                else
+                y=[position.x, position.y, velocity.x, velocity.y];
+                X=getSpikeCounts(trial, time);
+                end
+                    if size(X,1) ~=size(y,1) 
+                        X
+                        y
+                        fprintf('Error in trial %i: Size of x (%i, %i), does not match size of y (%i, %i)\n',trial, size(X,1), size(X,2),size(y,1),size(y,2));
+                        ME= MException('MATLAB:DataSizesIncorrect','The number of dimensions for the target does not match the dimensions for the observation');
+                        throw(ME)
+                    end
+            end
             
         end
     end
